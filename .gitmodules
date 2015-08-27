@@ -1,0 +1,9 @@
+[submodule "MYMOID.wiki"]
+	path = MYMOID.wiki
+	url = git://github.com/rlop03/MYMOID.wiki.git
+[submodule "dcs"]
+	path = dcs
+	url = https://github.com/rlop03/MYMOID.wiki.git
+[submodule "docs"]
+	path = docs
+	url = https://github.com/rlop03/MYMOID.wiki.git
