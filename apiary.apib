@@ -1,80 +1,71 @@
 FORMAT: 1A
 HOST: http://polls.apiblueprint.org/
 
-# Guía de la domunteación
+# Guía funcionamiento del Callback
 
-Polls is a simple API allowing consumers to view polls and vote in them.
+Esta guía provee información detallada acerca de los funcionamientos estándar del callback al momento de ejecutar un pago.
 
-## Questions Collection [/questions]
+# Group Procesos
 
-### List All Questions [GET]
+## Llamada estándar
+    
+**Paso 1**: Al realizar un pago se dispara el evento por el cual se extrae la información del mismo y se procede a la firma de los datos más importantes, que luego serán enviados al comercio.
 
-+ Response 200 (application/json)
+**Paso 2**: Una vez realizada la firma de los datos por MYMOID, la información es enviada al comercio a través del
+método "POST" a la URL de destino designada en el momento del registro del mismo.
 
-        [
-            {
-                "question": "Favourite programming language?",
-                "published_at": "2015-08-05T08:40:51.620Z",
-                "choices": [
-                    {
-                        "choice": "Swift",
-                        "votes": 2048
-                    }, {
-                        "choice": "Python",
-                        "votes": 1024
-                    }, {
-                        "choice": "Objective-C",
-                        "votes": 512
-                    }, {
-                        "choice": "Ruby",
-                        "votes": 256
-                    }
-                ]
-            }
-        ]
 
-### Create a New Question [POST]
+## Llamada de error
+    
+**Paso 1**: En el momento en que se intenta realizar el pago y este es denegado se dispara el evento al igual que en una llamada estándar, con la diferencia que en este caso el mensaje y el código del error son incluidos en la firma
+realizada por MYMOID (ver listado de errores en "[Guía códigos de error MYMOID](https://github.com/rlop03/MYMOID/wiki/C%C3%B3digos-de-error-MYMOID-API-Doc)").
 
-You may create your own question using this action. It takes a JSON
-object containing a question and a collection of answers in the
-form of choices.
+**Paso 2**: El método de envío es el mismo que en la llamada estándar.
 
-+ Request (application/json)
 
-        {
-            "question": "Favourite programming language?",
-            "choices": [
-                "Swift",
-                "Python",
-                "Objective-C",
-                "Ruby"
-            ]
-        }
+# Group Política de reintentos  
+## Llamada estándar
+    
+**Paso 1**: MYMOID tiene establecida una política de tres intentos en el caso de que el pago realizado no se encuentre
+aún en la base de datos, si el pago no es encontrado la firma y envío del callback no es realizado.  
 
-+ Response 201 (application/json)
+**Paso 2**: Una vez realizada la firma correspondiente de los datos el callback es enviado. En caso de que la respuesta del servidor externo (Cliente) sea distinta a ‘status = 200’ MYMOID es notificado y el proceso es terminado; si no es posible realizar el método de envío por parte de MYMOID este es almacenado en cola de envío, para ser enviado cuando el funcionamiento correcto de MYMOID sea restablecido.
 
-    + Headers
 
-            Location: /questions/2
+## Llamada de error
+    
+**Paso 1**: Al producir el error de pago no es necesario almacenarlo en la base de datos como un pago realizado, por lo cual en caso de error el callback seria enviado inmediatamente sin reintentos.
 
-    + Body
+**Paso 2**: La configuración del envío de callback de error es la misma que para una llamada estándar.
 
-            {
-                "question": "Favourite programming language?",
-                "published_at": "2015-08-05T08:40:51.620Z",
-                "choices": [
-                    {
-                        "choice": "Swift",
-                        "votes": 0
-                    }, {
-                        "choice": "Python",
-                        "votes": 0
-                    }, {
-                        "choice": "Objective-C",
-                        "votes": 0
-                    }, {
-                        "choice": "Ruby",
-                        "votes": 0
-                    }
-                ]
-            }
+
+# Group Listado de posibles errores recibidos
+**Mensaje**: Error authenticating paymentMethod.   
+**Código**: Validator.mymoPay.paymentMethodAuthenticationError
+
+**Mensaje**: Operation not allowed for external merchant. Trade should contact the processing center to solve the problem.  
+**Código**: Validator.mymoPay.operationNotAllowedForExternalMerchant.
+
+**Mensaje**: Gateway system error. Try in a few minutes  
+**Código**: Validator.mymoPay.gatewayServiceError
+
+**Mensaje**: This payment method has expired  
+**Código**: Validator.mymoPay.paymentMethodExpired
+
+**Mensaje**: Amount too small for this transaction  
+**Código**: Validator.mymoPay.amountTooSmall
+
+**Mensaje**: Invalid card number  
+**Código**: Validator.invalidCardNumber
+
+**Mensaje**: Error authenticating paymentMethod  
+**Código**: Validator.mymoPay.paymentMethodAuthenticationError
+
+**Mensaje**: Operation not allowed for this payment method, use another  
+**Código**: Validator.mymoPay.paymentMethodNotValid
+
+**Mensaje**: Payment order is not available  
+**Código**: Validator.mymoPay.paymentOrderUnavailable
+
+**Mensaje**: We cannot process payment because a problem on Gateway  
+**Código**: Validator.mymoPay.gatewayError
